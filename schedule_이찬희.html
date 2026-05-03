@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주간 운동 스케줄</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0d0f;--surface:#16161a;--surface2:#1e1e24;--surface3:#26262e;
+  --border:#2e2e38;--accent:#c8f55a;--accent2:#5af5c8;--accent3:#f55a8a;
+  --text:#f0f0f4;--text2:#9090a0;--text3:#5a5a6a;
+  --radius:12px;--radius-sm:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;padding:32px 28px;}
+
+/* ── 헤더 ── */
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;}
+.header-left h1{font-size:22px;font-weight:700;letter-spacing:-0.5px;}
+.header-left p{font-size:12px;color:var(--text3);margin-top:4px;font-family:'DM Mono',monospace;}
+
+/* ── 달력 패널 ── */
+.cal-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:20px;}
+.cal-panel-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.cal-panel-title{font-size:13px;font-weight:600;color:var(--text2);}
+.cal-nav{display:flex;align-items:center;gap:12px;}
+.cal-nav-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:30px;height:30px;border-radius:var(--radius-sm);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.cal-nav-btn:hover{border-color:var(--accent);color:var(--accent);}
+.cal-month-label{font-size:14px;font-weight:700;font-family:'DM Mono',monospace;color:var(--text);min-width:100px;text-align:center;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cal-dow{text-align:center;font-size:11px;font-weight:700;color:var(--text3);padding:6px 0;letter-spacing:.5px;}
+.cal-dow.sun{color:#f55a5a;}
+.cal-dow.sat{color:#5a8af5;}
+.cal-day{
+  text-align:center;padding:8px 0;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:500;cursor:pointer;
+  border:1px solid transparent;transition:all .15s;
+  color:var(--text2);background:transparent;
+}
+.cal-day:hover{background:var(--surface2);color:var(--text);}
+.cal-day.empty{cursor:default;pointer-events:none;}
+.cal-day.selected{background:rgba(200,245,90,.15);border-color:rgba(200,245,90,.4);color:var(--accent);font-weight:700;}
+.cal-day.today{border-color:var(--border);color:var(--text);}
+.cal-day.today.selected{border-color:rgba(200,245,90,.6);}
+.cal-day.other-month{color:var(--text3);opacity:.4;}
+.cal-day.sun-col{color:#f57a7a;}
+.cal-day.sat-col{color:#7a9af5;}
+.cal-day.sun-col.selected,.cal-day.sat-col.selected{color:var(--accent);}
+
+.cal-hint{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:12px;}
+.cal-selected-preview{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;min-height:24px;}
+.cal-sel-tag{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(200,245,90,.12);color:var(--accent);border:1px solid rgba(200,245,90,.25);font-family:'DM Mono',monospace;}
+
+.apply-btn{
+  margin-top:16px;padding:9px 22px;border-radius:var(--radius-sm);
+  border:1px solid var(--accent);background:rgba(200,245,90,.1);
+  color:var(--accent);font-family:'Noto Sans KR',sans-serif;
+  font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;
+}
+.apply-btn:hover{background:rgba(200,245,90,.2);}
+
+/* ── 요약 카드 ── */
+.summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px;}
+.summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
+.summary-label{font-size:11px;color:var(--text3);font-weight:500;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}
+.summary-value{font-size:24px;font-weight:700;font-family:'DM Mono',monospace;}
+.summary-note{font-size:11px;color:var(--text3);margin-top:3px;}
+
+/* ── 주차 섹션 ── */
+.week-section{margin-bottom:28px;}
+.week-label{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.week-badge{font-size:10px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:20px;background:var(--surface3);color:var(--text3);border:1px solid var(--border);}
+.copy-note{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-left:auto;}
+
+/* ── 스케줄 테이블 ── */
+.schedule-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:visible;}
+.schedule-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.schedule-header-title{font-size:13px;font-weight:600;}
+.legend-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3);}
+.leg-dot{width:7px;height:7px;border-radius:50%;}
+
+.days-grid{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid var(--border);}
+.day-head{padding:11px 0;text-align:center;font-size:11px;font-weight:700;letter-spacing:.3px;border-right:1px solid var(--border);}
+.day-head:last-child{border-right:none;}
+.day-head.active-day{color:var(--accent);background:rgba(200,245,90,.06);}
+.day-head.rest-day{color:var(--text3);background:var(--surface2);}
+
+.day-col{border-right:1px solid var(--border);border-top:1px solid var(--border);min-height:260px;padding:10px 8px;display:flex;flex-direction:column;gap:6px;position:relative;}
+.day-col:last-child{border-right:none;}
+.day-col.rest-col{background:var(--surface2);}
+.day-col.active-col{background:var(--bg);}
+.day-date-sub{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;text-align:center;margin-bottom:2px;}
+
+/* ── 부위 선택 ── */
+.split-picker-btn{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:3px;padding:4px 7px;border-radius:20px;
+  border:1px dashed var(--border);background:var(--surface2);
+  cursor:pointer;font-family:'Noto Sans KR',sans-serif;
+  color:var(--text3);transition:all .15s;width:100%;min-height:26px;
+}
+.split-picker-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(200,245,90,.06);}
+.split-picker-btn.has-parts{border-style:solid;border-color:var(--border);}
+.btn-placeholder{font-size:10px;}
+.arrow{font-size:8px;opacity:.5;flex-shrink:0;}
+.split-tags-row{display:flex;flex-wrap:wrap;gap:3px;flex:1;}
+.split-tag{display:inline-flex;align-items:center;padding:2px 6px;border-radius:20px;font-size:9px;font-weight:700;}
+
+.part-하체{background:rgba(200,245,90,.15);color:var(--accent);border:1px solid rgba(200,245,90,.3);}
+.part-등{background:rgba(90,245,200,.15);color:var(--accent2);border:1px solid rgba(90,245,200,.3);}
+.part-가슴{background:rgba(122,171,245,.15);color:#7aabf5;border:1px solid rgba(122,171,245,.3);}
+.part-어깨{background:rgba(245,200,90,.15);color:#f5c85a;border:1px solid rgba(245,200,90,.3);}
+.part-팔{background:rgba(208,122,245,.15);color:#d07af5;border:1px solid rgba(208,122,245,.3);}
+.part-복근{background:rgba(245,90,138,.15);color:var(--accent3);border:1px solid rgba(245,90,138,.3);}
+
+/* ── 드롭다운 ── */
+.part-dropdown{position:absolute;top:calc(100% + 4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px;z-index:9999;width:140px;box-shadow:0 12px 32px rgba(0,0,0,.7);display:none;}
+.part-dropdown.open{display:block;}
+.dd-title{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.8px;text-transform:uppercase;padding:3px 6px 7px;border-bottom:1px solid var(--border);margin-bottom:3px;}
+.part-option{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:background .1s;color:var(--text2);}
+.part-option:hover{background:var(--surface2);color:var(--text);}
+.part-option.selected{color:var(--text);}
+.part-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.check-icon{margin-left:auto;font-size:10px;opacity:0;color:var(--accent);}
+.part-option.selected .check-icon{opacity:1;}
+
+/* ── 슬롯 ── */
+.slot{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 8px;flex:1;min-height:32px;display:flex;flex-direction:column;gap:2px;}
+.slot-num{font-size:9px;color:var(--text3);font-family:'DM Mono',monospace;}
+.slot-name{font-size:10px;font-weight:500;color:var(--text);line-height:1.4;}
+.slot.empty .slot-name{color:var(--text3);font-weight:400;}
+.slot.empty{border-style:dashed;background:transparent;}
+
+/* ── 유산소 ── */
+.cardio-section{margin-top:2px;border-top:1px solid var(--border);padding-top:6px;}
+.cardio-label{font-size:9px;color:var(--text3);font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px;}
+.cardio-check{display:flex;align-items:center;gap:6px;cursor:pointer;padding:5px 7px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);transition:all .15s;user-select:none;}
+.cardio-check:hover{border-color:rgba(245,90,138,.4);background:rgba(245,90,138,.05);}
+.cardio-check.checked{border-color:rgba(245,90,138,.5);background:rgba(245,90,138,.1);}
+.cardio-box{width:13px;height:13px;border-radius:3px;border:1.5px solid var(--text3);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.cardio-check.checked .cardio-box{background:var(--accent3);border-color:var(--accent3);}
+.cardio-check-label{font-size:11px;font-weight:500;color:var(--text2);transition:color .15s;}
+.cardio-check.checked .cardio-check-label{color:var(--accent3);}
+.cardio-mark{font-size:8px;color:#fff;font-weight:700;display:none;}
+.cardio-check.checked .cardio-mark{display:block;}
+
+/* ── 휴식 ── */
+.rest-content{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;opacity:.35;}
+.rest-icon{width:26px;height:26px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:12px;}
+.rest-label{font-size:10px;color:var(--text3);font-weight:500;}
+
+/* ── 노트 ── */
+.note-section{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;}
+.note-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:flex-start;gap:10px;}
+.note-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:5px;}
+.note-dot.cyan{background:var(--accent2);}
+.note-text{font-size:12px;color:var(--text2);line-height:1.7;}
+.note-text strong{color:var(--text);font-weight:600;}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="header-left">
+    <h1>주간 운동 스케줄</h1>
+    <p id="dateLabel"></p>
+  </div>
+</div>
+
+<!-- ── 달력 패널 ── -->
+<div class="cal-panel">
+  <div class="cal-panel-top">
+    <div class="cal-panel-title">운동 날짜 선택</div>
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="moveMonth(-1)">‹</button>
+      <div class="cal-month-label" id="calMonthLabel"></div>
+      <button class="cal-nav-btn" onclick="moveMonth(1)">›</button>
+    </div>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+  <div class="cal-hint">날짜를 클릭해서 운동일을 선택하세요 (복수 선택 가능)</div>
+  <div class="cal-selected-preview" id="calPreview"></div>
+  <button class="apply-btn" onclick="applySchedule()">스케줄 생성하기 ▶</button>
+</div>
+
+<!-- ── 요약 카드 ── -->
+<div class="summary-grid">
+  <div class="summary-card" style="border-color:rgba(200,245,90,.2);">
+    <div class="summary-label">선택된 운동일</div>
+    <div class="summary-value" style="color:var(--accent);" id="sumCount">0<span style="font-size:15px;font-weight:400;color:var(--text3);margin-left:4px;">일</span></div>
+    <div class="summary-note" id="sumDates">날짜를 선택해주세요</div>
+  </div>
+
+  <div class="summary-card">
+    <div class="summary-label">이번 주 분할</div>
+    <div id="splitSummary" style="margin-top:6px;font-size:12px;color:var(--text3);line-height:1.9;">부위를 선택해주세요</div>
+  </div>
+</div>
+
+<!-- ── 스케줄 영역 ── -->
+<div id="scheduleArea"></div>
+
+<div class="note-section">
+  <div class="note-card">
+    <div class="note-dot"></div>
+    <div class="note-text"><strong>회복의 중요성</strong><br>운동 후 충분한 휴식이 근성장의 핵심이에요. 같은 부위는 다음 운동 전까지 충분히 회복할 수 있도록 스케줄을 조정해 주세요.</div>
+  </div>
+  <div class="note-card">
+    <div class="note-dot cyan"></div>
+    <div class="note-text"><strong>초보자 권장 가이드</strong><br>처음에는 세트 수와 무게보다 <strong>동작의 정확성</strong>을 먼저 익히는 것이 중요해요. 트레이너의 지도에 따라 점진적으로 강도를 높여가세요.</div>
+  </div>
+</div>
+
+<script>
+// ── 상수 ──
+const PARTS=[
+  {name:'하체',color:'#c8f55a',cls:'part-하체'},
+  {name:'등',color:'#5af5c8',cls:'part-등'},
+  {name:'가슴',color:'#7aabf5',cls:'part-가슴'},
+  {name:'어깨',color:'#f5c85a',cls:'part-어깨'},
+  {name:'팔',color:'#d07af5',cls:'part-팔'},
+  {name:'복근',color:'#f55a8a',cls:'part-복근'},
+];
+const DOW=['일','월','화','수','목','금','토'];
+const STORAGE_KEY='workout_v3';
+
+// ── 앱 상태 ──
+let calYear, calMonth; // 달력 표시 연월
+let selectedDates=new Set(); // 'YYYY-MM-DD' 문자열 집합
+// schedule: { 'YYYY-MM-DD': { parts:[], cardio:false }, ... } x 2주차
+let schedule=[{},{}]; // schedule[0]=1주차, schedule[1]=2주차
+let scheduleGenerated=false;
+
+// ── 저장/로드 ──
+function save(){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify({
+    selectedDates:[...selectedDates],
+    schedule,
+    calYear,calMonth
+  }));
+}
+function load(){
+  try{
+    const r=localStorage.getItem(STORAGE_KEY);
+    if(!r)return;
+    const s=JSON.parse(r);
+    selectedDates=new Set(s.selectedDates||[]);
+    schedule=s.schedule||[{},{}];
+    if(s.calYear)calYear=s.calYear;
+    if(s.calMonth!=null)calMonth=s.calMonth;
+    scheduleGenerated=selectedDates.size>0;
+  }catch(e){}
+}
+
+// ── 날짜 헬퍼 ──
+function toKey(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');}
+function fromKey(k){const[y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d);}
+function fmtDate(k){const d=fromKey(k);return (d.getMonth()+1)+'월 '+d.getDate()+'일('+DOW[d.getDay()]+')';}
+
+// ── 날짜 표시 ──
+(function(){
+  const d=new Date();
+  document.getElementById('dateLabel').textContent=
+    d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+DOW[d.getDay()]+') 기준';
+})();
+
+// ── 달력 ──
+function initCal(){
+  const now=new Date();
+  calYear=calYear||now.getFullYear();
+  calMonth=calMonth!=null?calMonth:now.getMonth();
+}
+function renderCal(){
+  document.getElementById('calMonthLabel').textContent=calYear+'년 '+(calMonth+1)+'월';
+  const grid=document.getElementById('calGrid');
+  const today=new Date();
+  const todayKey=toKey(today.getFullYear(),today.getMonth(),today.getDate());
+  // 요일 헤더
+  let html=DOW.map((d,i)=>`<div class="cal-dow${i===0?' sun':i===6?' sat':''}">${d}</div>`).join('');
+  // 첫날 요일
+  const first=new Date(calYear,calMonth,1).getDay();
+  for(let i=0;i<first;i++) html+='<div class="cal-day empty"></div>';
+  const days=new Date(calYear,calMonth+1,0).getDate();
+  for(let d=1;d<=days;d++){
+    const key=toKey(calYear,calMonth,d);
+    const dow=new Date(calYear,calMonth,d).getDay();
+    const isSel=selectedDates.has(key);
+    const isToday=key===todayKey;
+    const cls=['cal-day',
+      isSel?'selected':'',
+      isToday?'today':'',
+      dow===0?'sun-col':dow===6?'sat-col':''
+    ].filter(Boolean).join(' ');
+    html+=`<div class="${cls}" onclick="toggleDate('${key}')">${d}</div>`;
+  }
+  grid.innerHTML=html;
+  renderCalPreview();
+}
+function moveMonth(dir){
+  calMonth+=dir;
+  if(calMonth>11){calMonth=0;calYear++;}
+  if(calMonth<0){calMonth=11;calYear--;}
+  save();
+  renderCal();
+}
+function toggleDate(key){
+  if(selectedDates.has(key)) selectedDates.delete(key);
+  else selectedDates.add(key);
+  save();
+  renderCal();
+  updateSummaryCards();
+}
+function renderCalPreview(){
+  const sorted=[...selectedDates].sort();
+  const el=document.getElementById('calPreview');
+  el.innerHTML=sorted.map(k=>`<span class="cal-sel-tag">${fmtDate(k)}</span>`).join('');
+}
+function updateSummaryCards(){
+  const sorted=[...selectedDates].sort();
+  document.getElementById('sumCount').innerHTML=
+    sorted.length+'<span style="font-size:15px;font-weight:400;color:var(--text3);margin-left:4px;">일</span>';
+  document.getElementById('sumDates').textContent=
+    sorted.length?sorted.map(k=>fmtDate(k)).join(', '):'날짜를 선택해주세요';
+}
+
+// ── 스케줄 생성 ──
+function applySchedule(){
+  if(selectedDates.size===0){alert('운동 날짜를 1일 이상 선택해주세요!');return;}
+  const sorted=[...selectedDates].sort();
+  // 2주차: 1주차 부위 복사
+  const w1={};
+  sorted.forEach(k=>{
+    w1[k]=(schedule[0][k])||(schedule[1][k])||{parts:[],cardio:false};
+  });
+  // 2주차 날짜: 1주차 각 날짜 + 7일
+  const w2={};
+  sorted.forEach(k=>{
+    const d=fromKey(k);
+    const d2=new Date(d);d2.setDate(d2.getDate()+7);
+    const k2=toKey(d2.getFullYear(),d2.getMonth(),d2.getDate());
+    // 2주차에 이미 설정된 게 있으면 유지, 없으면 1주차 복사
+    const existing=schedule[1][k2];
+    w2[k2]=existing||{parts:[...((schedule[0][k]&&schedule[0][k].parts)||[])],cardio:false};
+  });
+  schedule=[w1,w2];
+  scheduleGenerated=true;
+  save();
+  renderScheduleArea();
+  updateSummaryCards();
+  updateSplitSummary();
+}
+
+// ── 스케줄 영역 렌더 ──
+function renderScheduleArea(){
+  const area=document.getElementById('scheduleArea');
+  area.innerHTML='';
+  const sorted=[...selectedDates].sort();
+  // 2주차 날짜 배열
+  const sorted2=sorted.map(k=>{
+    const d=fromKey(k);const d2=new Date(d);d2.setDate(d2.getDate()+7);
+    return toKey(d2.getFullYear(),d2.getMonth(),d2.getDate());
+  });
+  [0,1].forEach(wk=>{
+    const dates=wk===0?sorted:sorted2;
+    area.innerHTML+=buildWeekHTML(wk,dates);
+  });
+  // 드롭다운 + 복원
+  [0,1].forEach(wk=>{
+    const dates=wk===0?sorted:sorted.map(k=>{
+      const d=fromKey(k);const d2=new Date(d);d2.setDate(d2.getDate()+7);
+      return toKey(d2.getFullYear(),d2.getMonth(),d2.getDate());
+    });
+    dates.forEach(k=>{
+      buildDropdown(wk,k);
+      restoreDay(wk,k);
+    });
+  });
+}
+
+function buildWeekHTML(wk,dates){
+  const wkLabel=wk===0?'1주차':'2주차';
+  const heads=DOW.map((d,dow)=>{
+    // 해당 요일에 운동 날짜가 있는지
+    const match=dates.find(k=>fromKey(k).getDay()===dow);
+    if(match){
+      const dd=fromKey(match);
+      return `<div class="day-head active-day">${d}<br><span style="font-size:9px;opacity:.7;">${dd.getMonth()+1}/${dd.getDate()}</span></div>`;
+    }
+    return `<div class="day-head rest-day">${d}</div>`;
+  }).join('');
+
+  const cols=DOW.map((d,dow)=>{
+    const match=dates.find(k=>fromKey(k).getDay()===dow);
+    if(!match){
+      return `<div class="day-col rest-col"><div class="rest-content"><div class="rest-icon">💤</div><div class="rest-label">휴식</div></div></div>`;
+    }
+    const k=match;
+    return `
+      <div class="day-col active-col" id="col-${wk}-${k}">
+        <div style="position:relative;">
+          <button class="split-picker-btn" id="btn-${wk}-${k}" onclick="toggleDropdown(${wk},'${k}',event)">
+            <span class="split-tags-row" id="tags-${wk}-${k}"><span class="btn-placeholder">+ 부위</span></span>
+            <span class="arrow">▼</span>
+          </button>
+          <div class="part-dropdown" id="dd-${wk}-${k}"></div>
+        </div>
+        <div class="slot empty"><span class="slot-num">01</span><span class="slot-name">종목 입력</span></div>
+        <div class="slot empty"><span class="slot-num">02</span><span class="slot-name">종목 입력</span></div>
+        <div class="slot empty"><span class="slot-num">03</span><span class="slot-name">종목 입력</span></div>
+        <div class="slot empty"><span class="slot-num">04</span><span class="slot-name">종목 입력</span></div>
+        <div class="cardio-section">
+          <div class="cardio-label">유산소</div>
+          <div class="cardio-check" id="cardio-${wk}-${k}" onclick="toggleCardio(${wk},'${k}')">
+            <div class="cardio-box"><span class="cardio-mark">✓</span></div>
+            <span class="cardio-check-label">완료</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="week-section">
+      <div class="week-label">
+        ${wkLabel}
+        <span class="week-badge">${dates.length}일 운동</span>
+        ${wk===1?'<span class="copy-note">1주차 부위 설정 복사됨</span>':''}
+      </div>
+      <div class="schedule-wrap">
+        <div class="schedule-header">
+          <span class="schedule-header-title">주간 루틴 — ${wkLabel}</span>
+          <div class="legend-row">
+            <div class="leg"><div class="leg-dot" style="background:#c8f55a;"></div>하체</div>
+            <div class="leg"><div class="leg-dot" style="background:#5af5c8;"></div>등</div>
+            <div class="leg"><div class="leg-dot" style="background:#7aabf5;"></div>가슴</div>
+            <div class="leg"><div class="leg-dot" style="background:#f5c85a;"></div>어깨</div>
+            <div class="leg"><div class="leg-dot" style="background:#d07af5;"></div>팔</div>
+            <div class="leg"><div class="leg-dot" style="background:#f55a8a;"></div>복근/유산소</div>
+          </div>
+        </div>
+        <div class="days-grid" style="grid-template-columns:repeat(7,1fr);">
+          ${heads}${cols}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── 드롭다운 ──
+function buildDropdown(wk,k){
+  const dd=document.getElementById('dd-'+wk+'-'+k);
+  if(!dd)return;
+  dd.innerHTML='<div class="dd-title">부위 선택</div>'+
+    PARTS.map(p=>
+      `<div class="part-option" id="opt-${wk}-${k}-${p.name}" onclick="togglePart(${wk},'${k}','${p.name}',event)">
+        <div class="part-dot" style="background:${p.color};"></div>${p.name}
+        <span class="check-icon">✓</span></div>`
+    ).join('');
+}
+
+let openKey=null;
+function toggleDropdown(wk,k,e){
+  e.stopPropagation();
+  const key=wk+'-'+k;
+  if(openKey===key){closeAllDD();return;}
+  closeAllDD();openKey=key;
+  const dd=document.getElementById('dd-'+key);
+  if(dd)dd.classList.add('open');
+}
+function closeAllDD(){
+  document.querySelectorAll('.part-dropdown').forEach(d=>d.classList.remove('open'));
+  openKey=null;
+}
+document.addEventListener('click',closeAllDD);
+
+// ── 부위 토글 ──
+function togglePart(wk,k,name,e){
+  e.stopPropagation();
+  if(!schedule[wk][k])schedule[wk][k]={parts:[],cardio:false};
+  const arr=schedule[wk][k].parts;
+  const i=arr.indexOf(name);
+  if(i>=0)arr.splice(i,1);else arr.push(name);
+  renderTags(wk,k);
+  updateSplitSummary();
+  save();
+}
+
+// ── 태그 렌더 ──
+function renderTags(wk,k){
+  const arr=(schedule[wk]&&schedule[wk][k]&&schedule[wk][k].parts)||[];
+  const tRow=document.getElementById('tags-'+wk+'-'+k);
+  const btn=document.getElementById('btn-'+wk+'-'+k);
+  if(!tRow||!btn)return;
+  if(arr.length===0){
+    tRow.innerHTML='<span class="btn-placeholder">+ 부위</span>';
+    btn.classList.remove('has-parts');
+  }else{
+    tRow.innerHTML=arr.map(name=>{
+      const p=PARTS.find(x=>x.name===name);
+      return `<span class="split-tag ${p.cls}">${name}</span>`;
+    }).join('');
+    btn.classList.add('has-parts');
+  }
+  PARTS.forEach(p=>{
+    const opt=document.getElementById('opt-'+wk+'-'+k+'-'+p.name);
+    if(opt)opt.classList.toggle('selected',arr.includes(p.name));
+  });
+}
+
+// ── 저장 복원 ──
+function restoreDay(wk,k){
+  const state=schedule[wk]&&schedule[wk][k];
+  if(!state)return;
+  renderTags(wk,k);
+  if(state.cardio){
+    const el=document.getElementById('cardio-'+wk+'-'+k);
+    if(el)el.classList.add('checked');
+  }
+}
+
+// ── 유산소 체크 ──
+function toggleCardio(wk,k){
+  if(!schedule[wk][k])schedule[wk][k]={parts:[],cardio:false};
+  schedule[wk][k].cardio=!schedule[wk][k].cardio;
+  const el=document.getElementById('cardio-'+wk+'-'+k);
+  if(el)el.classList.toggle('checked',schedule[wk][k].cardio);
+  save();
+}
+
+// ── 분할 요약 ──
+function updateSplitSummary(){
+  const sorted=[...selectedDates].sort();
+  const lines=sorted.map(k=>{
+    const parts=(schedule[0][k]&&schedule[0][k].parts)||[];
+    return parts.length?fmtDate(k)+': '+parts.join(' + '):null;
+  }).filter(Boolean);
+  const el=document.getElementById('splitSummary');
+  el.innerHTML=lines.length?lines.join('<br>'):'부위를 선택해주세요';
+  el.style.color=lines.length?'var(--text)':'var(--text3)';
+}
+
+// ── 초기화 ──
+load();
+initCal();
+renderCal();
+updateSummaryCards();
+if(scheduleGenerated){
+  renderScheduleArea();
+  updateSplitSummary();
+}
+</script>
+</body>
+</html>
