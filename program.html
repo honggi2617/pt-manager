@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>운동 프로그램 제공</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --paper:#f6f4ef; --card:#ffffff; --ink:#23282d; --ink-soft:#5c6670;
+    --line:#e3ded4; --line-soft:#eee9e0; --primary:#1f3a4d; --primary-soft:#e8eef1;
+    --accent:#c2693a; --accent-soft:#f7ece3;
+    --warm:#5b8a72; --main-c:#c2693a; --acc-c:#3f6a8a;
+    --shadow:0 1px 2px rgba(35,40,45,.04), 0 6px 18px rgba(35,40,45,.05); --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{background:var(--paper);}
+  body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif;color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;padding:0 0 90px;}
+  .wrap{max-width:880px;margin:0 auto;padding:0 16px;}
+  header{position:sticky;top:0;z-index:30;background:rgba(246,244,239,.92);backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line);}
+  .header-inner{max-width:880px;margin:0 auto;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .brand h1{font-size:18px;font-weight:800;letter-spacing:-.02em;color:var(--primary);}
+  .save-tag{font-size:12px;color:var(--ink-soft);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px;}
+
+  .btn{font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;border:none;border-radius:10px;padding:10px 14px;display:inline-flex;align-items:center;gap:6px;transition:.15s;white-space:nowrap;}
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--primary);color:#fff;} .btn-primary:hover{background:#284a61;}
+  .btn-accent{background:var(--accent);color:#fff;} .btn-accent:hover{background:#ad5a2f;}
+  .btn-ghost{background:var(--card);color:var(--ink-soft);border:1px solid var(--line);} .btn-ghost:hover{border-color:#cfc7b8;color:var(--ink);}
+  .btn-danger{background:var(--card);color:#b04a3a;border:1px solid #e7cfc8;} .btn-danger:hover{background:#fbf1ef;}
+  .btn-sm{padding:7px 11px;font-size:12.5px;border-radius:9px;}
+
+  .warn{background:#fbf3e6;border:1px solid #ecd9b8;color:#8a6a2f;font-size:12.5px;font-weight:600;border-radius:10px;padding:10px 14px;margin:14px 0;display:none;}
+
+  .toolbar{display:flex;gap:8px;align-items:center;margin:16px 0 0;flex-wrap:wrap;}
+  .toolbar select{flex:1;min-width:150px;font-family:inherit;font-size:14px;font-weight:700;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;}
+  .toolbar .spacer{flex:1;}
+
+  .sessionbar{display:flex;gap:8px;align-items:center;margin:12px 0 8px;flex-wrap:wrap;}
+  .sessionbar select{flex:1;min-width:160px;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;}
+
+  .meta-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;display:grid;gap:14px;grid-template-columns:1.4fr 1fr 1.2fr;margin-bottom:18px;}
+  @media(max-width:600px){.meta-card{grid-template-columns:1fr 1fr;}.meta-card .field-name{grid-column:1/-1;}}
+  .field label{display:block;font-size:11.5px;font-weight:700;color:var(--ink-soft);letter-spacing:.02em;margin-bottom:6px;}
+  .field input{width:100%;font-family:inherit;font-size:15px;font-weight:600;color:var(--ink);border:none;border-bottom:2px solid var(--line);background:transparent;padding:6px 2px;transition:.15s;}
+  .field input::placeholder{color:#c2bbac;font-weight:500;}
+  .field input:focus{outline:none;border-bottom-color:var(--accent);}
+  .field-name input{font-size:18px;font-weight:800;}
+  .field input:disabled{color:var(--ink);opacity:1;-webkit-text-fill-color:var(--ink);}
+
+  .section{margin-bottom:18px;}
+  .section-head{display:flex;align-items:center;gap:9px;margin:0 2px 10px;}
+  .section-head .chip{width:11px;height:11px;border-radius:3px;flex:none;}
+  .section-head h2{font-size:15px;font-weight:800;letter-spacing:-.01em;}
+  .section-head .count{font-size:12px;color:var(--ink-soft);font-weight:600;}
+  .sec-warm .chip{background:var(--warm);} .sec-warm .ex-card{border-left:3px solid var(--warm);}
+  .sec-main .chip{background:var(--main-c);} .sec-main .ex-card{border-left:3px solid var(--main-c);}
+  .sec-acc .chip{background:var(--acc-c);} .sec-acc .ex-card{border-left:3px solid var(--acc-c);}
+
+  .ex-list{display:flex;flex-direction:column;gap:10px;}
+  .ex-card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:14px;display:grid;gap:12px;}
+  .ex-top{display:flex;align-items:center;gap:10px;}
+  .ex-name{flex:1;font-family:inherit;font-size:15.5px;font-weight:700;color:var(--ink);border:none;border-bottom:2px solid var(--line-soft);background:transparent;padding:4px 2px;transition:.15s;}
+  .ex-name::placeholder{color:#c2bbac;font-weight:500;} .ex-name:focus{outline:none;border-bottom-color:var(--accent);}
+  .icon-btn{flex:none;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:#b09f88;cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;transition:.15s;}
+  .icon-btn:hover{color:#b04a3a;border-color:#e7cfc8;}
+  .pick-btn:hover{color:var(--accent)!important;border-color:var(--accent)!important;}
+  .pick-item{cursor:pointer;transition:.12s;} .pick-item:hover{border-color:var(--accent);box-shadow:0 2px 10px rgba(0,0,0,.08);}
+  .pick-item .li-name{padding-bottom:8px;}
+  .wrs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .wrs .cell{background:var(--paper);border-radius:9px;padding:7px 9px;}
+  .wrs .cell label{display:block;font-size:10.5px;font-weight:700;color:var(--ink-soft);margin-bottom:2px;}
+  .wrs .cell input{width:100%;font-family:inherit;font-size:16px;font-weight:700;color:var(--primary);border:none;background:transparent;padding:0;}
+  .wrs .cell input:focus{outline:none;} .wrs .cell input::placeholder{color:#cfc7b8;font-weight:600;}
+  .ex-bottom{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;}
+  @media(max-width:560px){.ex-bottom{grid-template-columns:1fr;}}
+  .memo{display:flex;flex-direction:column;}
+  .memo label{font-size:10.5px;font-weight:700;color:var(--ink-soft);margin-bottom:4px;}
+  .memo textarea{font-family:inherit;font-size:13.5px;color:var(--ink);line-height:1.45;resize:vertical;min-height:42px;border:1px solid var(--line-soft);border-radius:9px;background:var(--paper);padding:8px 10px;transition:.15s;}
+  .memo textarea::placeholder{color:#c2bbac;} .memo textarea:focus{outline:none;border-color:var(--accent);background:#fff;}
+
+  .demo{display:flex;flex-direction:column;gap:6px;width:280px;}
+  @media(max-width:560px){.demo{width:100%;}}
+  .demo label{font-size:10.5px;font-weight:700;color:var(--ink-soft);}
+  .demo-thumb{width:280px;max-width:100%;height:280px;border-radius:13px;border:1.5px dashed #d6cdba;background:var(--paper);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;transition:.15s;}
+  .demo-thumb:hover{border-color:var(--accent);background:var(--accent-soft);}
+  .demo-thumb span{font-size:11px;color:#a89a82;font-weight:600;text-align:center;padding:0 8px;line-height:1.4;}
+  .demo-thumb img{width:100%;height:100%;object-fit:cover;}
+  .demo-acts{display:flex;gap:6px;}
+  .demo-acts button{flex:1;font-size:11px;font-weight:700;border-radius:7px;padding:5px 0;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);cursor:pointer;}
+  .demo-acts button:hover{border-color:var(--accent);color:var(--accent);}
+  .lib-badge{font-size:10px;color:var(--warm);font-weight:700;}
+
+  .add-ex{width:100%;background:var(--card);border:1.5px dashed var(--line);border-radius:11px;padding:11px;color:var(--ink-soft);font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;transition:.15s;}
+  .add-ex:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+  .export-bar{display:flex;gap:8px;justify-content:flex-end;margin-top:6px;flex-wrap:wrap;}
+  .empty{text-align:center;color:var(--ink-soft);padding:46px 20px;} .empty h3{font-size:16px;color:var(--ink);margin-bottom:6px;} .empty p{font-size:13.5px;}
+  .viewtabs{display:flex;gap:6px;margin:16px 0 4px;}
+  .vtab{flex:1;font-family:inherit;font-size:13.5px;font-weight:700;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);cursor:pointer;transition:.15s;}
+  .vtab.on{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .stat-h{font-size:14px;font-weight:800;color:var(--primary);margin:22px 2px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .prog-list{display:flex;flex-direction:column;gap:8px;}
+  .prog-item{background:var(--card);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);padding:12px 14px;cursor:pointer;transition:.12s;}
+  .prog-item:hover{border-color:var(--accent);}
+  .pi-top{display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap;}
+  .pi-date{font-size:14px;font-weight:800;color:var(--ink);}
+  .pi-part{font-size:11px;font-weight:700;padding:2px 9px;border-radius:12px;background:var(--accent-soft);color:var(--accent);}
+  .pi-cnt{font-size:11px;color:var(--ink-soft);font-weight:600;margin-left:auto;}
+  .pi-ex{font-size:12.5px;color:var(--ink-soft);line-height:1.5;}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;}
+  .seg-btn{font-family:inherit;font-size:12.5px;font-weight:700;padding:6px 16px;border:none;background:var(--card);color:var(--ink-soft);cursor:pointer;}
+  .seg-btn.on{background:var(--primary);color:#fff;}
+  .freq-card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:10px;}
+  .freq-title{display:flex;align-items:baseline;justify-content:space-between;font-size:14px;font-weight:800;color:var(--primary);margin-bottom:10px;border-bottom:1px solid var(--line-soft);padding-bottom:8px;}
+  .freq-sub{font-size:11px;color:var(--ink-soft);font-weight:600;}
+  .freq-rows{display:flex;flex-direction:column;gap:2px;}
+  .freq-row{display:flex;align-items:center;justify-content:space-between;padding:6px 4px;border-bottom:1px dashed var(--line-soft);}
+  .freq-row:last-child{border-bottom:none;}
+  .freq-row .fn{font-size:13.5px;font-weight:600;color:var(--ink);}
+  .freq-row .fc{font-size:14px;font-weight:800;font-family:'Pretendard',monospace;color:var(--accent);background:var(--accent-soft);padding:2px 10px;border-radius:999px;}
+  .foot{font-size:11px;color:#b5ac9c;text-align:center;margin-top:26px;line-height:1.7;}
+
+  /* 모달 공통 */
+  .modal{position:fixed;inset:0;background:rgba(35,40,45,.6);display:none;align-items:center;justify-content:center;z-index:60;padding:20px;}
+  .modal.open{display:flex;}
+  .modal-box{background:var(--card);border-radius:16px;max-width:640px;width:100%;max-height:86vh;overflow:auto;padding:22px;}
+  .modal-box h3{font-size:16px;font-weight:800;color:var(--primary);margin-bottom:4px;}
+  .modal-box .sub{font-size:12.5px;color:var(--ink-soft);margin-bottom:16px;}
+  .modal-x{float:right;cursor:pointer;color:var(--ink-soft);font-size:20px;line-height:1;border:none;background:none;}
+  .lib-add{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .lib-add input[type=text]{flex:1;min-width:140px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:9px;padding:9px 11px;}
+  .lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+  .lib-item{border:1px solid var(--line-soft);border-radius:11px;overflow:hidden;}
+  .lib-item .li-img{width:100%;height:130px;object-fit:cover;background:var(--paper);display:block;cursor:pointer;}
+  .lib-item .li-name{font-size:12.5px;font-weight:700;padding:7px 9px 4px;word-break:break-all;}
+  .lib-item .li-acts{display:flex;gap:5px;padding:0 9px 9px;}
+  .lib-item .li-acts button{flex:1;font-size:11px;font-weight:700;border-radius:7px;padding:5px 0;border:1px solid var(--line);background:var(--card);cursor:pointer;color:var(--ink-soft);}
+  .lib-empty{color:var(--ink-soft);font-size:13px;text-align:center;padding:30px 0;}
+  .lib-add select,.lib-filter select{font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:var(--card);color:var(--ink);}
+  .lib-filter{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);font-weight:600;margin-bottom:14px;}
+  .lib-cat-head{grid-column:1/-1;font-size:13.5px;font-weight:800;color:var(--ink);border-bottom:2px solid var(--line);padding:12px 2px 6px;margin-top:4px;display:flex;align-items:center;gap:8px;}
+  .lib-cat-head .cnt{font-weight:600;color:var(--ink-soft);font-size:12px;}
+  .lib-item .li-cat{width:calc(100% - 18px);margin:0 9px 8px;font-family:inherit;font-size:11px;font-weight:600;border:1px solid var(--line);border-radius:7px;padding:4px 6px;background:var(--card);color:var(--ink-soft);}
+  .imgview{position:fixed;inset:0;background:rgba(35,40,45,.82);display:none;align-items:center;justify-content:center;z-index:80;padding:24px;}
+  .imgview.open{display:flex;} .imgview img{max-width:100%;max-height:100%;border-radius:12px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="brand"><h1>운동 프로그램 제공</h1></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-sm" id="libBtn">🖼 동작 사진 라이브러리</button>
+      <span class="save-tag" id="saveTag">자동 저장</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="warn" id="storeWarn">⚠️ 이 미리보기 화면에서는 저장이 제한될 수 있어요. 파일을 <b>다운로드해서 컴퓨터에서 열면</b> 사진·기록이 모두 저장됩니다.</div>
+
+  <div class="toolbar">
+    <select id="memberSel"></select>
+    <button class="btn btn-primary btn-sm" id="addMemberBtn">+ 회원</button>
+    <button class="btn btn-danger btn-sm" id="delMemberBtn">회원 삭제</button>
+    <span class="spacer"></span>
+    <button class="btn btn-ghost btn-sm" id="exportBackupBtn">백업 내보내기</button>
+    <button class="btn btn-ghost btn-sm" id="importBackupBtn">백업 불러오기</button>
+    <button class="btn btn-ghost btn-sm" id="syncBtn">☁ 동기화</button>
+    <span class="save-tag" id="syncTag" style="display:none;"></span>
+    <input type="file" id="importFile" accept="application/json" style="display:none;">
+  </div>
+
+  <div id="app"></div>
+  <div class="foot">프로그램·회원 정보는 이 브라우저에 저장되고, 동작 사진은 별도 저장소(IndexedDB)에 보관돼 수백 장이어도 빠릅니다.<br>가끔 <b>백업 내보내기</b>로 안전하게 보관하세요. (백업엔 사진도 함께 담깁니다.)</div>
+</div>
+
+<!-- 라이브러리 모달 -->
+<div class="modal" id="libModal">
+  <div class="modal-box">
+    <button class="modal-x" onclick="document.getElementById('libModal').classList.remove('open')">✕</button>
+    <h3>동작 사진 라이브러리</h3>
+    <div class="sub">운동 이름에 사진을 1장씩 등록해 두면, 그 운동이 들어간 모든 프로그램에 자동으로 따라붙습니다. 나중에 직접 촬영한 사진으로 <b>교체</b>하면 전부 한 번에 바뀝니다.</div>
+    <div class="lib-add">
+      <select id="libNewCat" title="부위 선택"></select>
+      <input type="text" id="libNewName" placeholder="운동 이름 (예: 바벨 백스쿼트)">
+      <button class="btn btn-accent btn-sm" id="libAddBtn">＋ 사진 등록</button>
+      <input type="file" id="libAddFile" accept="image/*" style="display:none;">
+    </div>
+    <div class="lib-filter">부위 보기 <select id="libFilter"></select></div>
+    <div class="lib-grid" id="libGrid"></div>
+  </div>
+</div>
+
+<!-- 라이브러리에서 동작 선택(픽커) 모달 -->
+<div class="modal" id="pickModal">
+  <div class="modal-box">
+    <button class="modal-x" onclick="document.getElementById('pickModal').classList.remove('open')">✕</button>
+    <h3>라이브러리에서 동작 선택</h3>
+    <div class="sub">사진을 눌러 이 운동에 넣으세요. 이름을 정확히 몰라도 사진·부위로 찾을 수 있어요.</div>
+    <div class="lib-add">
+      <input type="text" id="pickSearch" placeholder="운동 이름 검색 (예: 스쿼트)">
+      <select id="pickFilter"></select>
+    </div>
+    <div class="lib-grid" id="pickGrid"></div>
+  </div>
+</div>
+
+<div id="exportStage" style="position:fixed;left:-99999px;top:0;"></div>
+<div class="imgview" id="imgView"><img id="imgViewSrc" alt=""></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ═══════════ 클라우드 동기화 설정 ═══════════ */
+  /* ▼▼▼ 여기에 GAS 웹앱 배포 URL(.../exec)을 붙여넣으세요.
+         비워두면 동기화 OFF → 기존처럼 이 기기에만 저장됩니다. ▼▼▼ */
+  var SYNC_URL = "https://script.google.com/macros/s/AKfycbxbeXeMhFtdwTgNOZZOugV4sLkbCT6qjHmM2A1HPb39885K-JyFEZmMOISS1LhgQQw/exec";
+  /* ▲▲▲ 예: var SYNC_URL = "https://script.google.com/macros/s/AKfy.../exec"; ▲▲▲ */
+
+  var SYNC = { url:(SYNC_URL||'').trim(), on:!!(SYNC_URL||'').trim(), busy:false };
+  var REVKEY='ptprog_rev_v1', DIRTYKEY='ptprog_dirty_v1', DELKEY='ptprog_pendingdel_v1';
+  var suspendCloud = false;   // pull/백업 복원 중 역방향 푸시 방지
+  function lsGet(k,d){ try{ var v=localStorage.getItem(k); return v==null?d:v; }catch(e){ return d; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  var localRev = parseInt(lsGet(REVKEY,'0'),10)||0;
+  var dirty = lsGet(DIRTYKEY,'0')==='1';
+  function saveRev(){ lsSet(REVKEY, String(localRev)); }
+  function markDirty(){ dirty=true; lsSet(DIRTYKEY,'1'); }
+  function clearDirty(){ dirty=false; lsSet(DIRTYKEY,'0'); }
+  function pendingDeletes(){ try{ return JSON.parse(lsGet(DELKEY,'[]')); }catch(e){ return []; } }
+  function setPendingDeletes(a){ lsSet(DELKEY, JSON.stringify(a)); }
+  function addPendingDelete(nm){ var a=pendingDeletes(); if(a.indexOf(nm)<0){ a.push(nm); setPendingDeletes(a); } }
+  function hashStr(s){ s=String(s); var h=5381,i=s.length; while(i){ h=(h*33)^s.charCodeAt(--i); } return (h>>>0).toString(36); }
+
+  /* ─────────── 동작 사진 저장소 (IndexedDB) ─────────── */
+  var IDB_NAME='ptprog_images', STORE='exImages', idb=null;
+  var memImg={}; // 메모리 캐시 (+ IDB 불가 환경 폴백)
+  function openIDB(){
+    return new Promise(function(res){
+      try{
+        var rq=indexedDB.open(IDB_NAME,1);
+        rq.onupgradeneeded=function(e){ var d=e.target.result; if(!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE,{keyPath:'name'}); };
+        rq.onsuccess=function(e){ idb=e.target.result; res(true); };
+        rq.onerror=function(){ res(false); };
+      }catch(e){ res(false); }
+    });
+  }
+  function imgPut(name,dataUrl,meta){
+    memImg[name]=dataUrl;
+    var ts=(meta&&meta.ts)||Date.now(), hash=(meta&&meta.hash)||hashStr(dataUrl);
+    if(!suspendCloud && SYNC.on) cloudPushPhoto(name,dataUrl,ts,hash);
+    return new Promise(function(res){
+      if(!idb){ res(true); return; }
+      try{ var tx=idb.transaction(STORE,'readwrite'); tx.objectStore(STORE).put({name:name,data:dataUrl,ts:ts,hash:hash}); tx.oncomplete=function(){res(true);}; tx.onerror=function(){res(false);}; }
+      catch(e){ res(false); }
+    });
+  }
+  function imgGet(name){
+    return new Promise(function(res){
+      if(Object.prototype.hasOwnProperty.call(memImg,name)){ res(memImg[name]); return; }
+      if(!idb){ res(null); return; }
+      try{ var tx=idb.transaction(STORE,'readonly'); var rq=tx.objectStore(STORE).get(name);
+           rq.onsuccess=function(){ var v=rq.result?rq.result.data:null; memImg[name]=v; res(v); }; rq.onerror=function(){res(null);}; }
+      catch(e){ res(null); }
+    });
+  }
+  function imgDelete(name){
+    delete memImg[name];
+    if(!suspendCloud && SYNC.on) cloudDeletePhoto(name);
+    return new Promise(function(res){
+      if(!idb){ res(true); return; }
+      try{ var tx=idb.transaction(STORE,'readwrite'); tx.objectStore(STORE).delete(name); tx.oncomplete=function(){res(true);}; tx.onerror=function(){res(false);}; }
+      catch(e){ res(false); }
+    });
+  }
+  function imgAll(){
+    return new Promise(function(res){
+      if(!idb){ res(Object.keys(memImg).filter(function(n){return memImg[n];}).map(function(n){return {name:n,data:memImg[n]};})); return; }
+      try{ var tx=idb.transaction(STORE,'readonly'); var rq=tx.objectStore(STORE).getAll(); rq.onsuccess=function(){res(rq.result||[]);}; rq.onerror=function(){res([]);}; }
+      catch(e){ res([]); }
+    });
+  }
+  function normName(s){ return (s||'').trim(); }
+
+  /* ─────────── 프로그램·회원 저장소 (localStorage, 텍스트만) ─────────── */
+  var KEY='ptprog_db_v1', storeOK=true;
+  try{ localStorage.setItem('__t','1'); localStorage.removeItem('__t'); }catch(e){ storeOK=false; }
+  function loadDB(){ if(!storeOK) return null; try{ var s=localStorage.getItem(KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
+  function persist(){ if(!storeOK){ flash('미저장(미리보기)'); return; } try{ localStorage.setItem(KEY, JSON.stringify(DB)); flash('저장됨 ✓'); if(!suspendCloud && SYNC.on){ markDirty(); scheduleCloudPush(); } }catch(e){ flash('저장 공간 부족'); } }
+
+  var SEED_NAMES=['정수식','김종시','김미현','구본창','김정호','이승우','김정하','베카','김다은','김경숙','박서정','이찬희','신진숙','박미자','김희순','한만진'];
+  var DB = loadDB();
+  if(!DB){ DB={members:[],programs:{}}; SEED_NAMES.forEach(function(n){ var id=uid(); DB.members.push({id:id,name:n}); DB.programs[id]=[]; }); }
+  if(!DB.cats) DB.cats={}; // 동작 사진 부위 분류 (운동이름 → 부위)
+  var sel={ memberId:null, programId:null };
+
+  /* 동작 사진 부위 분류 */
+  var CATS=['가동성','코어&기능성','하체','등','가슴','어깨','팔'];
+  function catOf(n){ n=normName(n); return (DB.cats&&DB.cats[n])||'미분류'; }
+  function setCat(n,c){ if(!DB.cats)DB.cats={}; n=normName(n); if(c&&c!=='미분류')DB.cats[n]=c; else delete DB.cats[n]; }
+
+  var GROUPS=[{key:'warmup',label:'준비운동',cls:'sec-warm',color:'#5b8a72'},
+              {key:'main',label:'메인운동',cls:'sec-main',color:'#c2693a'},
+              {key:'accessory',label:'보조운동',cls:'sec-acc',color:'#3f6a8a'}];
+
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+  function todayStr(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function blankEx(){ return {id:uid(),name:'',weight:'',reps:'',sets:'',memo:''}; }
+  function blankProgram(){ return {id:uid(),date:todayStr(),bodyPart:'',groups:{warmup:[blankEx()],main:[blankEx()],accessory:[blankEx()]}}; }
+  function el(t,c,h){ var e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e; }
+  function setSave(t){ document.getElementById('saveTag').textContent=t; }
+  function flash(t){ setSave(t); clearTimeout(flash._t); flash._t=setTimeout(function(){setSave('자동 저장');},1200); }
+  function curMember(){ return DB.members.filter(function(m){return m.id===sel.memberId;})[0]||null; }
+  function memberPrograms(){ return DB.programs[sel.memberId]||[]; }
+  function curProgram(){ return memberPrograms().filter(function(p){return p.id===sel.programId;})[0]||null; }
+  var saveTimer=null; function scheduleSave(){ if(saveTimer)clearTimeout(saveTimer); saveTimer=setTimeout(persist,500); }
+
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  /* ─────────── 이미지 압축 ─────────── */
+  function processImage(file,cb){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        function render(max,q){ var w=img.width,h=img.height; if(w>h&&w>max){h=Math.round(h*max/w);w=max;} else if(h>=w&&h>max){w=Math.round(w*max/h);h=max;} var cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h); return cv.toDataURL('image/jpeg',q); }
+        var d=render(640,0.78); cb(d);
+      };
+      img.onerror=function(){ cb(null); }; img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  /* ─────────── 회원 ─────────── */
+  function renderMemberSelect(){
+    var s=document.getElementById('memberSel'); s.innerHTML='';
+    if(!DB.members.length){ var o=el('option','','회원을 추가하세요'); o.value=''; s.appendChild(o); return; }
+    DB.members.forEach(function(m){ var o=el('option','',m.name||'(이름 없음)'); o.value=m.id; if(m.id===sel.memberId)o.selected=true; s.appendChild(o); });
+  }
+  function addMember(){
+    var name=prompt('새 회원 이름'); if(name===null)return; name=name.trim(); if(!name)return;
+    var m={id:uid(),name:name}; DB.members.push(m); DB.programs[m.id]=[]; sel.memberId=m.id; openFirstOrEmpty();
+    persist(); renderMemberSelect(); renderApp();
+  }
+  function delMember(){
+    var m=curMember(); if(!m)return;
+    if(!confirm('‘'+(m.name||'이름없음')+'’ 회원과 그 프로그램을 삭제할까요? (동작 사진 라이브러리는 그대로 유지됩니다)'))return;
+    DB.members=DB.members.filter(function(x){return x.id!==m.id;}); delete DB.programs[m.id];
+    sel.memberId=DB.members[0]?DB.members[0].id:null; openFirstOrEmpty();
+    persist(); renderMemberSelect(); renderApp();
+  }
+
+  /* ─────────── 프로그램 ─────────── */
+  function openFirstOrEmpty(){ var l=memberPrograms(); sel.programId=l.length?l[0].id:null; }
+  function newProgram(){ if(!sel.memberId)return; var p=blankProgram(); if(!DB.programs[sel.memberId])DB.programs[sel.memberId]=[]; DB.programs[sel.memberId].unshift(p); sel.programId=p.id; persist(); renderApp(); }
+  function deleteProgram(){ var p=curProgram(); if(!p)return; if(!confirm('이 프로그램('+(p.date||'')+')을 삭제할까요?'))return; DB.programs[sel.memberId]=memberPrograms().filter(function(x){return x.id!==p.id;}); openFirstOrEmpty(); persist(); renderApp(); }
+  function sortPrograms(){ memberPrograms().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');}); }
+
+  var view='edit', statMode='week';
+  function renderApp(){
+    var root=document.getElementById('app'); root.innerHTML='';
+    if(!sel.memberId){ root.appendChild(el('div','empty','<h3>회원이 없습니다</h3><p>위 <b>+ 회원</b>으로 시작하세요.</p>')); return; }
+    root.appendChild(viewTabs());
+    if(view==='stats'){ renderStats(root); return; }
+    renderEditor(root);
+  }
+  function viewTabs(){
+    var t=el('div','viewtabs');
+    var b1=el('button','vtab'+(view==='edit'?' on':''),'✏️ 프로그램 작성'); b1.onclick=function(){ view='edit'; renderApp(); };
+    var b2=el('button','vtab'+(view==='stats'?' on':''),'📊 기록 · 통계'); b2.onclick=function(){ view='stats'; renderApp(); };
+    t.appendChild(b1); t.appendChild(b2); return t;
+  }
+  function renderEditor(root){
+    var bar=el('div','sessionbar'); var ss=el('select'); ss.id='progSel'; sortPrograms();
+    var list=memberPrograms();
+    if(!list.length){ var o=el('option','','프로그램 없음'); o.value=''; ss.appendChild(o); }
+    list.forEach(function(p){ var o=el('option','',(p.date||'')+(p.bodyPart?' · '+p.bodyPart:'')); o.value=p.id; if(p.id===sel.programId)o.selected=true; ss.appendChild(o); });
+    ss.onchange=function(e){ if(e.target.value){ sel.programId=e.target.value; renderApp(); } };
+    bar.appendChild(ss);
+    var nb=el('button','btn btn-primary','+ 새 프로그램'); nb.onclick=newProgram; bar.appendChild(nb);
+    var db=el('button','btn btn-danger','삭제'); db.onclick=deleteProgram; bar.appendChild(db);
+    root.appendChild(bar);
+
+    var c=curProgram();
+    if(!c){ root.appendChild(el('div','empty','<h3>프로그램이 없습니다</h3><p><b>+ 새 프로그램</b>으로 시작하세요.</p>')); return; }
+
+    var meta=el('div','meta-card');
+    meta.appendChild(metaField('field-name','회원 이름','text',curMember().name,'',null,true));
+    meta.appendChild(metaField('','날짜','date',c.date,'',function(v){c.date=v;refreshLabel();scheduleSave();}));
+    meta.appendChild(metaField('','운동 부위','text',c.bodyPart,'예: 하체 / 가슴+삼두',function(v){c.bodyPart=v;refreshLabel();scheduleSave();}));
+    root.appendChild(meta);
+
+    GROUPS.forEach(function(g){
+      var arr=c.groups[g.key]||(c.groups[g.key]=[]);
+      var sec=el('section','section '+g.cls);
+      sec.appendChild(el('div','section-head','<span class="chip"></span><h2>'+g.label+'</h2><span class="count">'+arr.length+'개</span>'));
+      var le=el('div','ex-list'); arr.forEach(function(ex,i){ le.appendChild(exerciseCard(g.key,ex,i)); }); sec.appendChild(le);
+      var add=el('button','add-ex','+ '+g.label+' 추가'); add.onclick=function(){ arr.push(blankEx()); renderApp(); scheduleSave(); }; sec.appendChild(add);
+      root.appendChild(sec);
+    });
+
+    var eb=el('div','export-bar');
+    var pBtn=el('button','btn btn-accent','📷 이미지로 저장'); pBtn.onclick=function(){ exportSheet('png'); };
+    var dBtn=el('button','btn btn-ghost','📄 PDF로 저장'); dBtn.onclick=function(){ exportSheet('pdf'); };
+    eb.appendChild(pBtn); eb.appendChild(dBtn); root.appendChild(eb);
+  }
+  function weekRange(ds){
+    var d=new Date(ds+'T00:00:00'); if(isNaN(d)) return {key:ds,label:ds};
+    var day=(d.getDay()+6)%7; var mon=new Date(d); mon.setDate(d.getDate()-day); var sun=new Date(mon); sun.setDate(mon.getDate()+6);
+    function k(x){ return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
+    function md(x){ return (x.getMonth()+1)+'/'+x.getDate(); }
+    return {key:k(mon), label:md(mon)+'~'+md(sun)+' 주'};
+  }
+  function renderStats(root){
+    var progs=memberPrograms().slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+
+    // 1) 프로그램 기록 리스트
+    root.appendChild(el('div','stat-h','📋 '+ (curMember()?curMember().name+' 님 ':'') +'프로그램 기록 ('+progs.length+'개)'));
+    if(!progs.length){ root.appendChild(el('div','empty','<p>아직 제공한 프로그램이 없습니다.</p>')); }
+    else {
+      var pl=el('div','prog-list');
+      progs.forEach(function(p){
+        var names=[]; GROUPS.forEach(function(g){ (p.groups[g.key]||[]).forEach(function(ex){ var n=normName(ex.name); if(n)names.push(n); }); });
+        var card=el('div','prog-item');
+        card.innerHTML='<div class="pi-top"><span class="pi-date">'+escapeHtml(p.date||'(날짜없음)')+'</span>'+(p.bodyPart?'<span class="pi-part">'+escapeHtml(p.bodyPart)+'</span>':'')+'<span class="pi-cnt">'+names.length+'개 동작</span></div><div class="pi-ex">'+(names.length?names.map(escapeHtml).join(' · '):'(비어 있음)')+'</div>';
+        card.onclick=function(){ sel.programId=p.id; view='edit'; renderApp(); };
+        pl.appendChild(card);
+      });
+      root.appendChild(pl);
+    }
+
+    // 2) 동작 빈도 (주간/월간)
+    var h2=el('div','stat-h','📊 동작 빈도');
+    var seg=el('span','seg');
+    var sw=el('button','seg-btn'+(statMode==='week'?' on':''),'주간'); sw.onclick=function(){ statMode='week'; renderApp(); };
+    var sm=el('button','seg-btn'+(statMode==='month'?' on':''),'월간'); sm.onclick=function(){ statMode='month'; renderApp(); };
+    seg.appendChild(sw); seg.appendChild(sm); h2.appendChild(seg);
+    root.appendChild(h2);
+
+    var periods={}, order=[];
+    progs.forEach(function(p){
+      if(!p.date)return; var key,label;
+      if(statMode==='week'){ var w=weekRange(p.date); key=w.key; label=w.label; }
+      else { key=p.date.slice(0,7); label=key.slice(0,4)+'년 '+parseInt(key.slice(5,7),10)+'월'; }
+      if(!periods[key]){ periods[key]={label:label,counts:{},progs:0}; order.push(key); }
+      periods[key].progs++;
+      GROUPS.forEach(function(g){ (p.groups[g.key]||[]).forEach(function(ex){ var n=normName(ex.name); if(!n)return; periods[key].counts[n]=(periods[key].counts[n]||0)+1; }); });
+    });
+    order.sort(function(a,b){return b.localeCompare(a);});
+    if(!order.length){ root.appendChild(el('div','empty','<p>집계할 동작이 없습니다.</p>')); return; }
+    order.forEach(function(k){
+      var per=periods[k];
+      var card=el('div','freq-card');
+      card.appendChild(el('div','freq-title','<span>'+escapeHtml(per.label)+'</span><span class="freq-sub">프로그램 '+per.progs+'개</span>'));
+      var arr=Object.keys(per.counts).map(function(n){return {n:n,c:per.counts[n]};}).sort(function(a,b){return b.c-a.c || a.n.localeCompare(b.n);});
+      var rows=el('div','freq-rows');
+      arr.forEach(function(x){ rows.appendChild(el('div','freq-row','<span class="fn">'+escapeHtml(x.n)+'</span><span class="fc">×'+x.c+'</span>')); });
+      card.appendChild(rows); root.appendChild(card);
+    });
+  }
+  function refreshLabel(){ var s=document.getElementById('progSel'),c=curProgram(); if(!s||!c)return; var o=Array.prototype.find.call(s.options,function(x){return x.value===c.id;}); if(o)o.textContent=(c.date||'')+(c.bodyPart?' · '+c.bodyPart:''); }
+  function metaField(extra,label,type,val,ph,onInput,disabled){
+    var f=el('div','field '+extra); f.innerHTML='<label>'+label+'</label>';
+    var inp=el('input'); inp.type=type; inp.value=val||''; if(ph)inp.placeholder=ph;
+    if(disabled){ inp.disabled=true; } else inp.addEventListener('input',function(){ onInput(inp.value); });
+    f.appendChild(inp); return f;
+  }
+
+  function exerciseCard(groupKey,ex,idx){
+    var card=el('div','ex-card');
+    var top=el('div','ex-top');
+    var name=el('input','ex-name'); name.type='text'; name.value=ex.name||''; name.placeholder='운동 이름 (예: 바벨 백스쿼트)';
+    var pick=el('button','icon-btn pick-btn','📚'); pick.title='라이브러리에서 선택';
+    var del=el('button','icon-btn','✕'); del.onclick=function(){ curProgram().groups[groupKey].splice(idx,1); renderApp(); scheduleSave(); };
+    top.appendChild(name); top.appendChild(pick); top.appendChild(del); card.appendChild(top);
+    var wrs=el('div','wrs');
+    wrs.appendChild(numCell('무게(kg)',ex.weight,function(v){ex.weight=v;scheduleSave();}));
+    wrs.appendChild(numCell('횟수',ex.reps,function(v){ex.reps=v;scheduleSave();}));
+    wrs.appendChild(numCell('세트',ex.sets,function(v){ex.sets=v;scheduleSave();}));
+    card.appendChild(wrs);
+    var bottom=el('div','ex-bottom');
+    var memoWrap=el('div','memo'); memoWrap.innerHTML='<label>메모 (자세 큐 / 주의사항)</label>';
+    var ta=el('textarea'); ta.value=ex.memo||''; ta.placeholder='혼자 할 때 참고할 포인트';
+    ta.addEventListener('input',function(){ ex.memo=ta.value; scheduleSave(); });
+    memoWrap.appendChild(ta); bottom.appendChild(memoWrap);
+
+    // 동작 사진 (라이브러리 — 운동 이름 기준)
+    var demo=el('div','demo'); demo.innerHTML='<label>동작 사진 <span class="lib-badge"></span></label>';
+    var thumb=el('div','demo-thumb');
+    var file=el('input'); file.type='file'; file.accept='image/*'; file.style.display='none';
+    var acts=el('div','demo-acts');
+    function paint(dataUrl){
+      thumb.innerHTML='';
+      var badge=demo.querySelector('.lib-badge');
+      if(dataUrl){ var im=el('img'); im.src=dataUrl; thumb.appendChild(im); if(badge)badge.textContent='· 라이브러리';
+        acts.innerHTML=''; var rep=el('button',null,'교체'); rep.onclick=function(){file.click();}; var view=el('button',null,'크게'); view.onclick=function(){ openImg(dataUrl); };
+        acts.appendChild(rep); acts.appendChild(view);
+      } else { thumb.appendChild(el('span','','운동 이름을 적고<br>사진을 등록하세요')); if(badge)badge.textContent='';
+        acts.innerHTML=''; var addb=el('button',null,'＋ 사진 등록'); addb.onclick=function(){ if(!normName(name.value)){ alert('먼저 운동 이름을 입력하세요.'); return; } file.click(); }; acts.appendChild(addb);
+      }
+    }
+    thumb.onclick=function(){ var nm=normName(name.value); if(memImg[nm]) openImg(memImg[nm]); else { if(!nm){ alert('먼저 운동 이름을 입력하세요.'); return; } file.click(); } };
+    file.onchange=function(){ var nm=normName(name.value); if(!nm){ alert('먼저 운동 이름을 입력하세요.'); return; } if(file.files[0]) processImage(file.files[0],function(d){ if(!d)return; imgPut(nm,d).then(function(){ renderApp(); flash('사진 등록됨 ✓'); }); }); };
+    // 초기 표시: 이 운동 이름의 라이브러리 사진 조회
+    imgGet(normName(ex.name)).then(function(d){ paint(d); });
+    // 이름 변경 시 사진 다시 조회
+    var nmTimer=null;
+    name.addEventListener('input',function(){ ex.name=name.value; scheduleSave(); if(nmTimer)clearTimeout(nmTimer); nmTimer=setTimeout(function(){ imgGet(normName(name.value)).then(function(d){ paint(d); }); },350); });
+    pick.onclick=function(){ openPicker(function(chosenName){ name.value=chosenName; ex.name=chosenName; scheduleSave(); imgGet(normName(chosenName)).then(function(d){ paint(d); }); }); };
+    demo.appendChild(thumb); demo.appendChild(acts); demo.appendChild(file);
+    bottom.appendChild(demo); card.appendChild(bottom);
+    return card;
+  }
+  function numCell(label,val,onInput){
+    var c=el('div','cell'); c.innerHTML='<label>'+label+'</label>';
+    var inp=el('input'); inp.type='text'; inp.inputMode='decimal'; inp.value=val||''; inp.placeholder='-';
+    inp.addEventListener('input',function(){ onInput(inp.value); }); c.appendChild(inp); return c;
+  }
+  function openImg(src){ document.getElementById('imgViewSrc').src=src; document.getElementById('imgView').classList.add('open'); }
+  document.getElementById('imgView').onclick=function(){ this.classList.remove('open'); };
+
+  /* ─────────── 라이브러리 모달 ─────────── */
+  function openLibrary(){ document.getElementById('libModal').classList.add('open'); fillCatSelects(); renderLibrary(); }
+  function fillCatSelects(){
+    var nc=document.getElementById('libNewCat');
+    if(nc && !nc.options.length){ CATS.forEach(function(c){ var o=el('option','',c); o.value=c; nc.appendChild(o); }); }
+    var fl=document.getElementById('libFilter');
+    if(fl && !fl.options.length){ ['전체'].concat(CATS,['미분류']).forEach(function(c){ var o=el('option','',c); o.value=c; fl.appendChild(o); }); }
+  }
+  function libCard(it){
+    var card=el('div','lib-item');
+    var im=el('img','li-img'); im.src=it.data; im.onclick=function(){ openImg(it.data); };
+    card.appendChild(im);
+    card.appendChild(el('div','li-name',escapeHtml(it.name)));
+    var cs=el('select','li-cat');
+    CATS.concat(['미분류']).forEach(function(c){ var o=el('option','',c); o.value=c; if(catOf(it.name)===c)o.selected=true; cs.appendChild(o); });
+    cs.onchange=function(){ setCat(it.name, cs.value); persist(); renderLibrary(); };
+    card.appendChild(cs);
+    var acts=el('div','li-acts');
+    var rep=el('button',null,'교체'); var repF=el('input'); repF.type='file'; repF.accept='image/*'; repF.style.display='none';
+    rep.onclick=function(){ repF.click(); };
+    repF.onchange=function(){ if(repF.files[0]) processImage(repF.files[0],function(d){ if(!d)return; imgPut(it.name,d).then(function(){ renderLibrary(); renderApp(); }); }); };
+    var delb=el('button',null,'삭제'); delb.onclick=function(){ if(confirm('‘'+it.name+'’ 동작 사진을 삭제할까요?')){ setCat(it.name,'미분류'); imgDelete(it.name).then(function(){ persist(); renderLibrary(); renderApp(); }); } };
+    acts.appendChild(rep); acts.appendChild(delb); acts.appendChild(repF);
+    card.appendChild(acts);
+    return card;
+  }
+  function renderLibrary(){
+    imgAll().then(function(items){
+      items.sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+      var grid=document.getElementById('libGrid'); grid.innerHTML='';
+      if(!items.length){ grid.innerHTML='<div class="lib-empty">아직 등록된 동작 사진이 없습니다.<br>위에서 부위·운동 이름·사진을 등록하거나, 프로그램 편집 중 각 운동의 “＋ 사진 등록”을 누르세요.</div>'; return; }
+      var fl=document.getElementById('libFilter'); var filter=fl?fl.value:'전체';
+      var groups={}; CATS.concat(['미분류']).forEach(function(c){ groups[c]=[]; });
+      items.forEach(function(it){ var c=catOf(it.name); (groups[c]||groups['미분류']).push(it); });
+      var shown=0;
+      CATS.concat(['미분류']).forEach(function(cat){
+        var arr=groups[cat]; if(!arr.length) return;
+        if(filter!=='전체' && filter!==cat) return;
+        var head=el('div','lib-cat-head'); head.innerHTML=escapeHtml(cat)+' <span class="cnt">'+arr.length+'</span>'; grid.appendChild(head);
+        arr.forEach(function(it){ grid.appendChild(libCard(it)); shown++; });
+      });
+      if(!shown){ grid.innerHTML='<div class="lib-empty">이 부위에 등록된 동작 사진이 없습니다.</div>'; }
+    });
+  }
+  /* 라이브러리 픽커 (운동 행에서 사진으로 동작 선택) */
+  var pickCb=null;
+  function openPicker(cb){
+    pickCb=cb;
+    var f=document.getElementById('pickFilter');
+    if(f && !f.options.length){ ['전체'].concat(CATS,['미분류']).forEach(function(c){ var o=el('option','',c); o.value=c; f.appendChild(o); }); }
+    document.getElementById('pickSearch').value='';
+    document.getElementById('pickModal').classList.add('open');
+    renderPicker();
+  }
+  function renderPicker(){
+    imgAll().then(function(items){
+      items.sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+      var q=normName(document.getElementById('pickSearch').value).toLowerCase();
+      var fl=document.getElementById('pickFilter'); var filter=fl?fl.value:'전체';
+      var grid=document.getElementById('pickGrid'); grid.innerHTML='';
+      if(!items.length){ grid.innerHTML='<div class="lib-empty">아직 등록된 동작 사진이 없습니다.<br>먼저 “🖼 동작 사진 라이브러리”에서 사진을 등록하세요.</div>'; return; }
+      var groups={}; CATS.concat(['미분류']).forEach(function(c){ groups[c]=[]; });
+      items.forEach(function(it){ if(q && (it.name||'').toLowerCase().indexOf(q)<0) return; var c=catOf(it.name); (groups[c]||groups['미분류']).push(it); });
+      var shown=0;
+      CATS.concat(['미분류']).forEach(function(cat){
+        var arr=groups[cat]; if(!arr.length) return;
+        if(filter!=='전체' && filter!==cat) return;
+        var head=el('div','lib-cat-head'); head.innerHTML=escapeHtml(cat)+' <span class="cnt">'+arr.length+'</span>'; grid.appendChild(head);
+        arr.forEach(function(it){
+          var card=el('div','lib-item pick-item');
+          var im=el('img','li-img'); im.src=it.data; card.appendChild(im);
+          card.appendChild(el('div','li-name',escapeHtml(it.name)));
+          card.onclick=function(){ if(pickCb)pickCb(it.name); document.getElementById('pickModal').classList.remove('open'); flash('동작 추가됨 ✓'); };
+          grid.appendChild(card); shown++;
+        });
+      });
+      if(!shown){ grid.innerHTML='<div class="lib-empty">검색 결과가 없습니다.</div>'; }
+    });
+  }
+  document.getElementById('pickSearch').addEventListener('input',renderPicker);
+  document.getElementById('pickFilter').onchange=renderPicker;
+
+  document.getElementById('libBtn').onclick=openLibrary;
+  document.getElementById('libFilter').onchange=renderLibrary;
+  document.getElementById('libAddBtn').onclick=function(){ var nm=normName(document.getElementById('libNewName').value); if(!nm){ alert('운동 이름을 입력하세요.'); return; } document.getElementById('libAddFile').click(); };
+  document.getElementById('libAddFile').onchange=function(){ var nm=normName(document.getElementById('libNewName').value); if(!nm)return; var cat=document.getElementById('libNewCat').value; if(this.files[0]) processImage(this.files[0],function(d){ if(!d)return; setCat(nm,cat); imgPut(nm,d).then(function(){ persist(); document.getElementById('libNewName').value=''; renderLibrary(); renderApp(); }); }); this.value=''; };
+
+  /* ─────────── 이미지/PDF 내보내기 ─────────── */
+  function exportSheet(kind){
+    var c=curProgram(), m=curMember(); if(!c||!m)return;
+    if(typeof html2canvas==='undefined'){ alert('변환 기능을 불러오지 못했어요. 인터넷 연결 상태에서 다시 시도해 주세요.'); return; }
+    // 필요한 동작 사진 미리 로드
+    var names=[]; GROUPS.forEach(function(g){ (c.groups[g.key]||[]).forEach(function(ex){ var n=normName(ex.name); if(n)names.push(n); }); });
+    setSave('만드는 중…');
+    Promise.all(names.map(function(n){ return imgGet(n).then(function(d){ return {n:n,d:d}; }); })).then(function(imgs){
+      var map={}; imgs.forEach(function(x){ if(x.d)map[x.n]=x.d; });
+      var stage=document.getElementById('exportStage'); stage.innerHTML='';
+      var sheet=buildSheet(c,m,map); stage.appendChild(sheet);
+      setTimeout(function(){
+        html2canvas(sheet,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(function(canvas){
+          if(kind==='pdf'){ savePDF(canvas,m,c); } else { savePNG(canvas,m,c); }
+          stage.innerHTML=''; flash('저장됨 ✓');
+        }).catch(function(){ stage.innerHTML=''; alert('저장에 실패했어요. 다시 시도해 주세요.'); });
+      },90);
+    });
+  }
+  function savePNG(canvas,m,c){
+    var a=document.createElement('a'); a.href=canvas.toDataURL('image/png'); a.download=(m.name||'회원')+'_'+(c.date||todayStr())+'.png';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+  function savePDF(canvas,m,c){
+    try{
+      var jspdf=(window.jspdf&&window.jspdf.jsPDF)?window.jspdf.jsPDF:null;
+      if(!jspdf){ savePNG(canvas,m,c); return; }
+      var pdf=new jspdf('p','mm','a4'); var pw=210, ph=297;
+      var iw=pw, ih=canvas.height*iw/canvas.width;
+      var pos=0, left=ih;
+      var img=canvas.toDataURL('image/jpeg',0.92);
+      pdf.addImage(img,'JPEG',0,pos,iw,ih); left-=ph;
+      while(left>0){ pos=left-ih; pdf.addPage(); pdf.addImage(img,'JPEG',0,pos,iw,ih); left-=ph; }
+      pdf.save((m.name||'회원')+'_'+(c.date||todayStr())+'.pdf');
+    }catch(e){ savePNG(canvas,m,c); }
+  }
+  function buildSheet(c,m,map){
+    var sheet=el('div'); sheet.style.cssText='width:760px;background:#fff;padding:34px 36px;font-family:Pretendard,sans-serif;color:#23282d;';
+    var head=el('div'); head.style.cssText='display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #1f3a4d;padding-bottom:14px;';
+    head.innerHTML='<div style="font-size:26px;font-weight:800;color:#1f3a4d;">'+escapeHtml(m.name||'회원')+' 님 운동 프로그램</div>'+
+      '<div style="text-align:right;font-size:14px;color:#5c6670;font-weight:600;line-height:1.6;"><b style="color:#c2693a;font-size:16px;">'+escapeHtml(c.date||'')+'</b><br>'+(c.bodyPart?'부위: '+escapeHtml(c.bodyPart):'')+'</div>';
+    sheet.appendChild(head);
+    GROUPS.forEach(function(g){
+      var arr=(c.groups[g.key]||[]).filter(function(ex){ return normName(ex.name)||ex.weight||ex.reps||ex.sets||ex.memo; });
+      if(!arr.length)return;
+      var grp=el('div'); grp.style.cssText='margin-top:20px;';
+      grp.innerHTML='<div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:800;margin-bottom:10px;"><span style="width:12px;height:12px;border-radius:3px;background:'+g.color+';"></span>'+g.label+'</div>';
+      arr.forEach(function(ex){
+        var vparts=[]; if(ex.weight)vparts.push(ex.weight+'kg'); if(ex.reps)vparts.push(ex.reps+'회'); if(ex.sets)vparts.push(ex.sets+'세트');
+        var row=el('div'); row.style.cssText='display:flex;gap:14px;align-items:flex-start;border:1px solid #eee9e0;border-radius:11px;padding:12px 14px;margin-bottom:9px;';
+        var inner='<div style="flex:1;"><div style="font-size:16px;font-weight:800;margin-bottom:4px;">'+escapeHtml(ex.name||'(운동)')+'</div>';
+        if(vparts.length) inner+='<div style="font-size:15px;font-weight:700;color:#1f3a4d;margin-bottom:4px;">'+vparts.join('  ×  ')+'</div>';
+        if(ex.memo) inner+='<div style="font-size:13px;color:#5c6670;white-space:pre-wrap;line-height:1.5;">'+escapeHtml(ex.memo)+'</div>';
+        inner+='</div>';
+        var nm=normName(ex.name);
+        if(map[nm]) inner='<img src="'+map[nm]+'" style="width:220px;height:220px;border-radius:11px;object-fit:cover;flex:none;background:#f6f4ef;">'+inner;
+        row.innerHTML=inner; grp.appendChild(row);
+      });
+      sheet.appendChild(grp);
+    });
+    var ef=el('div'); ef.style.cssText='margin-top:22px;text-align:right;font-size:12px;color:#b5ac9c;'; ef.textContent='운동 프로그램';
+    sheet.appendChild(ef);
+    return sheet;
+  }
+
+  /* ─────────── 백업 (프로그램 + 사진 함께) ─────────── */
+  function exportBackup(){
+    imgAll().then(function(items){
+      var payload={ db:DB, images:items };
+      var blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
+      var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='운동프로그램_백업_'+todayStr()+'.json';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); flash('백업 내보냄 ✓');
+    });
+  }
+  function importBackup(file){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      try{
+        var p=JSON.parse(e.target.result);
+        if(!p.db||!p.db.members) throw new Error('형식');
+        if(!confirm('현재 데이터를 백업 내용으로 교체할까요? (현재 프로그램·사진이 대체됩니다)'))return;
+        DB=p.db; var imgs=p.images||[]; memImg={};
+        suspendCloud=true;
+        Promise.all(imgs.map(function(it){ return imgPut(it.name,it.data); })).then(function(){
+          suspendCloud=false;
+          sel.memberId=DB.members[0]?DB.members[0].id:null; openFirstOrEmpty(); persist(); renderMemberSelect(); renderApp(); flash('백업 불러옴 ✓');
+          if(SYNC.on){ markDirty(); imgs.forEach(function(it){ cloudPushPhoto(it.name,it.data,Date.now(),hashStr(it.data)); }); cloudPushDB(); }
+        });
+      }catch(err){ alert('올바른 백업 파일이 아니에요.'); }
+    };
+    reader.readAsText(file);
+  }
+
+  /* ═══════════ 클라우드 동기화 모듈 ═══════════ */
+  function setSyncStatus(t){ var el=document.getElementById('syncTag'); if(!el)return; el.style.display=SYNC.on?'inline-block':'none'; el.textContent=t; }
+  function hhmm(){ var d=new Date(); return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
+
+  function fetchJSON(url, postBody){
+    var ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
+    var to=ctrl?setTimeout(function(){ try{ctrl.abort();}catch(e){} },25000):null;
+    var opt={ method: postBody?'POST':'GET' };
+    if(ctrl) opt.signal=ctrl.signal;
+    if(postBody) opt.body=postBody; // 헤더 미지정 → text/plain → 프리플라이트 없음
+    return fetch(url,opt).then(function(r){ return r.text(); }).then(function(t){ if(to)clearTimeout(to); try{ return JSON.parse(t); }catch(e){ return null; } });
+  }
+  function jget(params){
+    var q=Object.keys(params).map(function(k){ return k+'='+encodeURIComponent(params[k]); }).join('&');
+    return fetchJSON(SYNC.url+'?'+q+'&t='+Date.now(), null);
+  }
+  function jpost(body){ return fetchJSON(SYNC.url, JSON.stringify(body)); }
+
+  function cloudPushPhoto(name,dataUrl,ts,hash){
+    if(!SYNC.on) return Promise.resolve();
+    return jpost({action:'pushPhoto', name:name, data:dataUrl, ts:ts, hash:hash}).catch(function(){});
+  }
+  function cloudDeletePhoto(name){
+    if(!SYNC.on) return Promise.resolve();
+    return jpost({action:'deletePhoto', name:name}).then(function(r){
+      if(!r||!r.ok) addPendingDelete(name); // 실패 시 다음 동기화 때 재시도
+    }).catch(function(){ addPendingDelete(name); });
+  }
+
+  var cloudTimer=null;
+  function scheduleCloudPush(){ if(cloudTimer)clearTimeout(cloudTimer); cloudTimer=setTimeout(function(){ cloudPushDB(); },2500); }
+  function cloudPushDB(){
+    if(!SYNC.on || !dirty) return Promise.resolve();
+    setSyncStatus('☁ 올리는 중…');
+    return jpost({action:'pushDB', baseRev:localRev, db:DB}).then(function(r){
+      if(r&&r.conflict){ return syncNow(false); }     // 충돌 → 전체 동기화로 해결
+      if(r&&r.ok){ localRev=r.rev; saveRev(); clearDirty(); setSyncStatus('☁ 동기화됨 '+hhmm()); }
+      else setSyncStatus('☁ 올리기 실패');
+    }).catch(function(){ setSyncStatus('☁ 오프라인'); });
+  }
+
+  function saveLocalQuiet(){ try{ suspendCloud=true; localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){} finally{ suspendCloud=false; } }
+  function applyServerDB(sdb){
+    if(!sdb||!sdb.members) return false;
+    DB=sdb; if(!DB.programs)DB.programs={}; if(!DB.cats)DB.cats={};
+    if(!curMember()) sel.memberId = DB.members[0] ? DB.members[0].id : null;
+    saveLocalQuiet(); openFirstOrEmpty();
+    return true;
+  }
+
+  function reconcilePhotos(serverList){
+    return imgAll().then(function(localArr){
+      var L={}; localArr.forEach(function(it){ L[it.name]={ts:it.ts||0,hash:it.hash||'',data:it.data}; });
+      var S={}; serverList.forEach(function(it){ S[it.name]=it; });
+      var del=pendingDeletes(), jobs=[];
+      // ① 서버 → 로컬: 없거나, 해시 다르고 서버가 더 최신이면 내려받기
+      serverList.forEach(function(s){
+        if(del.indexOf(s.name)>=0) return;            // 내가 지운 건 다시 받지 않음
+        var l=L[s.name];
+        if(!l || (l.hash!==s.hash && (s.ts||0)>=(l.ts||0))){
+          jobs.push( jget({action:'photo', id:s.id}).then(function(r){
+            if(r&&r.ok&&r.data){ suspendCloud=true; return imgPut(s.name,r.data,{ts:s.ts,hash:s.hash}).then(function(){ suspendCloud=false; }); }
+          }).catch(function(){}) );
+        }
+      });
+      // ② 로컬 → 서버: 서버에 없거나, 로컬이 더 최신이면 올리기
+      localArr.forEach(function(it){
+        var s=S[it.name];
+        if(it.data && (!s || (s.hash!==(it.hash||'') && (it.ts||0)>(s.ts||0)))){
+          jobs.push( cloudPushPhoto(it.name, it.data, it.ts||Date.now(), it.hash||hashStr(it.data)) );
+        }
+      });
+      // ③ 보류 중인 삭제 처리
+      del.forEach(function(nm){ if(!S[nm]) return; jobs.push( jpost({action:'deletePhoto', name:nm}).catch(function(){}) ); });
+      setPendingDeletes([]);
+      return Promise.all(jobs);
+    });
+  }
+
+  function syncNow(manual){
+    if(!SYNC.on){ if(manual) alert('동기화가 설정되지 않았어요.\n파일 상단의 SYNC_URL 에 GAS 웹앱 주소를 넣어 주세요.'); return Promise.resolve(); }
+    if(SYNC.busy) return Promise.resolve();
+    SYNC.busy=true; setSyncStatus('☁ 동기화 중…');
+    var adopted=false;
+    return jget({action:'pull'}).then(function(p){
+      if(!p||!p.ok) throw new Error('pull failed');
+      var serverRev=p.rev||0;
+      // ── 텍스트(회원·프로그램) ──
+      if(serverRev>localRev){
+        if(dirty){
+          var keepMine=confirm('이 기기와 클라우드 양쪽 모두 변경됐습니다.\n\n[확인] 이 기기 내용을 유지 (클라우드 덮어쓰기)\n[취소] 클라우드 내용으로 교체 (이 기기 변경 버림)');
+          if(keepMine){ localRev=serverRev; saveRev(); }            // dirty 유지 → 아래에서 푸시
+          else { if(applyServerDB(p.db)) adopted=true; localRev=serverRev; saveRev(); clearDirty(); }
+        } else {
+          if(applyServerDB(p.db)) adopted=true; localRev=serverRev; saveRev();
+        }
+      } else if(serverRev===0 && !p.db && DB.members && DB.members.length){
+        markDirty(); // 서버가 비어 있으면 이 기기 데이터를 최초 업로드
+      }
+      // ── 사진 ──
+      return reconcilePhotos(p.photos||[]).then(function(){
+        if(dirty){
+          return jpost({action:'pushDB', baseRev:localRev, db:DB}).then(function(r){
+            if(r&&r.ok){ localRev=r.rev; saveRev(); clearDirty(); }
+            else if(r&&r.conflict){ if(applyServerDB(r.db)) adopted=true; localRev=r.rev; saveRev(); clearDirty(); }
+          });
+        }
+      });
+    }).then(function(){
+      if(adopted){ renderMemberSelect(); renderApp(); }
+      setSyncStatus('☁ 동기화됨 '+hhmm());
+    }).catch(function(){
+      setSyncStatus('☁ 동기화 실패 (오프라인?)');
+    }).then(function(){ SYNC.busy=false; });
+  }
+
+  /* ─────────── 이벤트 ─────────── */
+  document.getElementById('memberSel').onchange=function(e){ if(e.target.value){ sel.memberId=e.target.value; openFirstOrEmpty(); renderApp(); } };
+  document.getElementById('addMemberBtn').onclick=addMember;
+  document.getElementById('delMemberBtn').onclick=delMember;
+  document.getElementById('exportBackupBtn').onclick=exportBackup;
+  document.getElementById('importBackupBtn').onclick=function(){ document.getElementById('importFile').click(); };
+  document.getElementById('importFile').onchange=function(){ if(this.files[0]){ importBackup(this.files[0]); this.value=''; } };
+  document.getElementById('syncBtn').onclick=function(){ syncNow(true); };
+
+  /* ─────────── 시작 ─────────── */
+  if(!storeOK) document.getElementById('storeWarn').style.display='block';
+  openIDB().then(function(ok){
+    if(!ok) document.getElementById('storeWarn').style.display='block';
+    if(DB.members.length){ sel.memberId=DB.members[0].id; openFirstOrEmpty(); }
+    renderMemberSelect(); renderApp();
+    if(SYNC.on){ setSyncStatus('☁ 동기화 대기'); syncNow(false); }
+  });
+})();
+</script>
+</body>
+</html>
